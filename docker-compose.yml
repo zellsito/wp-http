@@ -6,4 +6,6 @@ services:
     environment:
       KEY: "123456"
     ports:
-      - "4000:3100"
+      - "4000:4000"
+    command:
+      npm start

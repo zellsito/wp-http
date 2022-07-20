@@ -3,26 +3,17 @@ let {
   DisconnectReason,
   useSingleFileAuthState,
   fetchLatestBaileysVersion,
-  AnyMessageContent,
-  delay,
-  generateForwardMessageContent,
-  prepareWAMessageMedia,
-  generateWAMessageFromContent,
-  generateMessageID,
-  downloadContentFromMessage,
   makeInMemoryStore,
 } = require('@adiwajshing/baileys')
-let fs = require('fs')
 let pino = require("pino")
 let { Boom } = require("@hapi/boom")
 let path = require("path").join;
-// let qrcode = require('qrcode')
 let express = require('express')
 let app = new express()
 
 // let QR;
 
-let PORT = 3100
+let PORT = 4000
 app.listen(PORT, () => {
   console.log(`Running at ${PORT}`);
 });
@@ -35,34 +26,6 @@ let store = makeInMemoryStore({
 })
 
 async function start() {
-
-  /** Uncache if there is file change
-   * @param {string} module Module name or path
-   * @param {function} cb <optional>
-   */
-  function nocache(module, cb = () => { }) {
-    console.log("‣ Module", `'${module}'`, "is now being watched for changes")
-    fs.watchFile(require.resolve(module), async () => {
-      await uncache(require.resolve(module))
-      cb(module)
-    })
-  }
-
-  /** Uncache a module
-   * @param {string} module Module name or path
-   */
-  function uncache(module = '.') {
-    return new Promise((resolve, reject) => {
-      try {
-        delete require.cache[require.resolve(module)]
-        resolve()
-      } catch (e) {
-        reject(e)
-      }
-    })
-  }
-
-  // nocache
 
   // connect to whatsapp
   async function connect() {
@@ -77,46 +40,53 @@ async function start() {
       logger: pino({
         level: "silent"
       }),
-      version
-    })
+      version,
+    });
 
-    store.bind(conn.ev)
+    store.bind(conn.ev);
 
-    conn.ev.on("creds.update", saveState)
+    conn.ev.on("creds.update", saveState);
 
     conn.ev.on("connection.update", async (up) => {
-      let { lastDisconnect, connection } = up
+      let { lastDisconnect, connection } = up;
 
       if (connection) {
         console.log("Connection Status: ", connection);
       }
+
       if (connection === "close") {
         let reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
         if (reason === DisconnectReason.badSession) {
           console.log(`Bad Session File, Please Delete sessions.json and Scan Again`);
-          conn.logout();
+          connect();
+          //conn.logout();
         } else if (reason === DisconnectReason.connectionClosed) {
-	  console.log("Connection closed, reconnecting....");
-	  connect();
+          console.log("Connection closed, reconnecting....");
+          connect();
         } else if (reason === DisconnectReason.connectionLost) {
-	  console.log("Connection Lost from Server, reconnecting...");
-	  connect();
+          console.log("Connection Lost from Server, reconnecting...");
+          connect();
         } else if (reason === DisconnectReason.connectionReplaced) {
-	  console.log("Connection Replaced, Another New Session Opened, Please Close Current Session First");
-	  conn.logout();
+          console.log("Connection Replaced, Another New Session Opened, Please Close Current Session First");
+          conn.logout();
         } else if (reason === DisconnectReason.loggedOut) {
-	  console.log(`Device Logged Out, Please Delete ${session} and Scan Again.`);
-	  conn.logout();
-	} else if (reason === DisconnectReason.restartRequired) {
-	  console.log("Restart Required, Restarting...");
-	  connect();
-	} else if (reason === DisconnectReason.timedOut) {
-	  console.log("Connection TimedOut, Reconnecting...");
-	  connect();
-	} else {
-	  conn.end(`Unknown DisconnectReason: ${reason}|${lastDisconnect.error}`);
-	}
+          console.log(`Device Logged Out, Please Delete ${session} and Scan Again.`);
+          conn.logout();
+        } else if (reason === DisconnectReason.restartRequired) {
+          console.log("Restart Required, Restarting...");
+          connect();
+        } else if (reason === DisconnectReason.timedOut) {
+          console.log("Connection TimedOut, Reconnecting...");
+          connect();
+        } else {
+          conn.end(`Unknown DisconnectReason: ${reason}|${lastDisconnect.error}`);
+        }
       }
+    })
+    conn.ev.on('messages.upsert', async m => {
+      await conn.sendMessage(m.messages[0].key.remoteJid, { text: 'Hello there!' })
+      //require('./msg/message')(conn, chatUpdate)
+
     })
     conn.ev.on('group-participants.update', async (chat) => {
       try {
@@ -158,11 +128,10 @@ async function start() {
   connect()
 }
 
-app.get("/", async(req, res) => {
-  
-  conn.sendMessage(req.body.to, {
-    text: req.body.text,
-  });
- })
+app.get('/', (req, res) => {
+  res.send('Hola 😎');
+});
+
+
 
 start()

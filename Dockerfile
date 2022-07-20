@@ -1,11 +1,12 @@
 FROM node:17.1.0
 
-RUN apt update && \
-  apt install -y
 
-COPY ["package.json", "package-lock.json", "/usr/src/"]
+COPY ["package.json", "/usr/src/"]
 WORKDIR /usr/src
-RUN npm install npm@6
 RUN npm install
-EXPOSE 4000
+
+EXPOSE 5000
+
+COPY . /usr/src/
+
 CMD ["node", "index.js"]`
