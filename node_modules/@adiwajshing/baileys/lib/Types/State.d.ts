@@ -5,7 +5,7 @@ export declare type ConnectionState = {
     connection: WAConnectionState;
     /** the error that caused the connection to close */
     lastDisconnect?: {
-        error: Error | undefined;
+        error: Error;
         date: Date;
     };
     /** is this a new login */

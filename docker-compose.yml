@@ -7,5 +7,7 @@ services:
       KEY: "123456"
     ports:
       - "4000:4000"
+    volumes:
+      - .:/usr/src/
     command:
       npm start

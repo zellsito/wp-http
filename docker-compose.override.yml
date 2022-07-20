@@ -2,8 +2,5 @@ version: "3.8"
 
 services:
   app:
-    build: .
-    volumes:
-      - .:/usr/src/
     command:
-      npx nodemon index.js
+      npm run dev
